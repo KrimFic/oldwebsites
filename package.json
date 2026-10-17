@@ -1,0 +1,13 @@
+{
+  "name": "oldwebsites-toolkit",
+  "private": true,
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.13.0",
+    "globals": "^17.13.0",
+    "lebab": "^3.2.9",
+    "parse5": "^8.0.0",
+    "postcss": "^8.5.6",
+    "prettier": "^3.9.10"
+  }
+}

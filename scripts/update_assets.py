@@ -1,36 +1,37 @@
 #!/usr/bin/env python3
-"""Preview or apply asset-reference replacements in a website directory."""
+"""Preview or apply literal text replacements in website source files."""
 
 import argparse
 import json
 from pathlib import Path
+import re
 import sys
 
 
-TEXT_EXTENSIONS = {".css", ".htm", ".html", ".js", ".php"}
+TEXT_EXTENSIONS = {
+    ".cjs", ".css", ".htm", ".html", ".js", ".json", ".jsx", ".mjs",
+    ".php", ".sass", ".scss", ".svg", ".ts", ".tsx", ".xml", ".less",
+}
 
 
 def load_mapping(path: Path) -> dict[str, str]:
     data = json.loads(path.read_text(encoding="utf-8"))
-    replacements = data.get("assets")
+    if not isinstance(data, dict):
+        raise ValueError('mapping must be an object with a "replacements" object')
+    replacements = data.get("replacements", data.get("assets"))
     if not isinstance(replacements, dict) or not replacements:
-        raise ValueError('mapping must contain a non-empty "assets" object')
+        raise ValueError('mapping must contain a non-empty "replacements" object')
     if any(not isinstance(old, str) or not isinstance(new, str) for old, new in replacements.items()):
-        raise ValueError("asset mapping keys and values must be strings")
+        raise ValueError("replacement keys and values must be strings")
     if any(not old for old in replacements):
-        raise ValueError("asset mapping keys cannot be empty")
+        raise ValueError("replacement keys cannot be empty")
     return replacements
 
 
 def update_file(path: Path, replacements: dict[str, str], write: bool) -> int:
     original = path.read_text(encoding="utf-8")
-    updated = original
-    count = 0
-    for old, new in replacements.items():
-        occurrences = updated.count(old)
-        if occurrences:
-            updated = updated.replace(old, new)
-            count += occurrences
+    pattern = re.compile("|".join(re.escape(old) for old in sorted(replacements, key=len, reverse=True)))
+    updated, count = pattern.subn(lambda match: replacements[match.group(0)], original)
     if count and write:
         path.write_text(updated, encoding="utf-8")
     return count
@@ -39,7 +40,7 @@ def update_file(path: Path, replacements: dict[str, str], write: bool) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", type=Path, help="Directory containing the website files")
-    parser.add_argument("--mapping", type=Path, required=True, help="JSON file with old-to-new asset references")
+    parser.add_argument("--mapping", type=Path, required=True, help="JSON file with old-to-new literal text values")
     parser.add_argument("--write", action="store_true", help="Apply changes; without this flag, only preview")
     args = parser.parse_args()
 

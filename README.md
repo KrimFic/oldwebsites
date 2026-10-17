@@ -1,52 +1,82 @@
-# oldwebsites
+<p align="center">
+	<strong>OLDWEBSITES</strong><br>
+	Recover an archived site. Bring its code forward.
+</p>
 
-Tools for recovering archived websites and refreshing their asset references.
+<p align="center">
+	<img alt="Beta" src="https://img.shields.io/badge/status-beta-9b5c35?style=flat-square">
+	<img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-356859?style=flat-square">
+	<img alt="PHP target 8.5" src="https://img.shields.io/badge/PHP-target%208.5-476b8f?style=flat-square">
+</p>
 
-**Status: Beta, ongoing work.** This toolkit is experimental and incomplete. It can automate configured checks and fixes, but it does not guarantee a complete conversion of an old site to modern code. Review all changes and test the recovered site before using it in production.
+> **Beta / ongoing work.** This toolkit is evolving. Preview transformations, review the diff, and run the site's tests before deploying.
 
-## Download an archived site
+## The workflow
 
-Use `scripts/restore_site.py` to find a Wayback capture, enumerate archived URLs for that hostname in the snapshot year, and download those pages and assets into a local directory. It also follows same-host references in HTML and CSS:
-
-```sh
-python3 scripts/restore_site.py https://example.com --output recovered/example
+```mermaid
+flowchart LR
+	A[Wayback snapshot] --> B[Local site copy]
+	B --> C[Legacy code migrations]
+	C --> D[Project tests]
+	D --> E[Modernized site]
 ```
 
-To select a particular year, pass `--year`, for example `--year 2004`. Without `--year`, it uses the year of the latest available starting-page capture. The downloader has no file limit by default; use `--max-files 1000` to set one.
+## Quick start
 
-This aims to copy every URL Wayback exposes for that hostname and year, but cannot recover content Wayback never captured. Failed downloads and reaching an optional file limit are reported and return a nonzero exit status, indicating the copy is incomplete.
+Install the migration tools once from the repository root:
 
-Wayback contains rendered public pages, not the original server-side PHP source. PHP modernization therefore needs a separate source checkout or backup.
+```sh
+npm install
+composer install
+```
 
-## Refresh asset references
+Download a snapshot. The default is the latest available capture; use `--year` to select a year:
 
-Create a JSON mapping from old references to replacement references:
+```sh
+python3 scripts/restore_site.py https://example.com --year 2004 --output recovered/example
+```
+
+Preview migrations, then apply them with the site's test command:
+
+```sh
+python3 scripts/modernize_code.py recovered/example
+python3 scripts/modernize_code.py recovered/example --write --test-command "npm test"
+```
+
+`--write` creates a backup first and rolls source files back if a converter or test fails. The backup location is printed by the command.
+
+## What gets modernized
+
+| Source     | Migration path                                                                                                     | Configuration                |
+| ---------- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------- |
+| JavaScript | Supported ES3/ES5 patterns to modern ES6; ESLint checks against the latest ECMAScript and applies modern autofixes | `eslint.config.mjs`          |
+| PHP        | Rector upgrades to PHP 8.5 by default; targets 8.1 through 8.5 are selectable                                      | `rector.php`, `--php-target` |
+| CSS        | PostCSS transforms configured properties, values, and declarations; Prettier formats the result                    | `css_migrations.json`        |
+| HTML       | Converts configured legacy elements and attributes, normalizes to HTML5, then formats                              | `html_migrations.json`       |
+
+CSS and HTML rules are editable per site. For example, a CSS migration can replace a vendor-prefixed property, a value, or a full declaration:
 
 ```json
 {
-	"assets": {
-		"images/logo.gif": "assets/logo.svg",
-		"http://example.com/site.css": "assets/site.css"
-	}
+  "properties": { "-webkit-border-radius": "border-radius" },
+  "values": { "#f00": "#c00" },
+  "declarations": {
+    "filter": {
+      "alpha(opacity=50)": { "property": "opacity", "value": "0.5" }
+    }
+  }
 }
 ```
 
-Preview matching changes first, then apply them with `--write`:
+The starter HTML profile upgrades common presentation markup such as `center`, `font`, `strike`, and `big`. Literal old-to-new values can also be replaced across PHP, JavaScript, CSS, HTML, TypeScript, JSON, SVG, and other supported text files:
 
 ```sh
-python3 scripts/update_assets.py recovered --mapping assets.json
-python3 scripts/update_assets.py recovered --mapping assets.json --write
+python3 scripts/update_assets.py recovered/example --mapping replacements.json
+python3 scripts/update_assets.py recovered/example --mapping replacements.json --write
 ```
 
-The updater scans PHP, HTML, CSS, and JavaScript files and changes text references only. It does not download, generate, or replace the asset files themselves.
+## Scope
 
-## Modernize source code
-
-The modernization runner invokes existing project tools: Rector for PHP, ESLint for JavaScript, Stylelint for CSS, and Prettier to format HTML. These tools only apply the rules configured in the source project; HTML is formatted but not structurally upgraded. Install and configure the tools first. The runner checks by default; pass `--write` to allow fixes:
-
-```sh
-python3 scripts/modernize_code.py path/to/source
-python3 scripts/modernize_code.py path/to/source --write
-```
-
-Wayback provides rendered pages, not PHP source, so PHP modernization requires a separate source checkout or backup. Review the resulting diff and run the site's tests before deployment.
+- The Wayback downloader inventories archived URLs for the starting hostname and follows references in HTML and CSS. Use `--max-files` to set an optional download limit.
+- Wayback captures rendered pages, not server-side PHP source. PHP conversion needs the original source checkout or a backup.
+- JavaScript and PHP converters only transform patterns supported by their rules. CSS and HTML standards evolve rather than having a single universal “latest version.” Review changes and test behavior before release.

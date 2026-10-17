@@ -1,0 +1,18 @@
+{
+  "properties": {
+    "-moz-border-radius": "border-radius",
+    "-moz-box-shadow": "box-shadow",
+    "-ms-transform": "transform",
+    "-webkit-animation": "animation",
+    "-webkit-border-radius": "border-radius",
+    "-webkit-box-shadow": "box-shadow",
+    "-webkit-transform": "transform",
+    "-webkit-transition": "transition"
+  },
+  "values": {},
+  "declarations": {
+    "filter": {
+      "alpha(opacity=50)": { "property": "opacity", "value": "0.5" }
+    }
+  }
+}
