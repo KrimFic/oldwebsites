@@ -2,15 +2,17 @@
 
 Tools for recovering archived websites and refreshing their asset references.
 
-## Recover an archived page
+## Download an archived site
 
-Use `scripts/restore_site.py` to find the latest Wayback Machine capture from 2000 onward and save its replay HTML:
+Use `scripts/restore_site.py` to find a Wayback capture and download same-domain pages and referenced assets into a local directory:
 
 ```sh
-python3 scripts/restore_site.py https://example.com --output recovered/example.html
+python3 scripts/restore_site.py https://example.com --output recovered/example
 ```
 
-To select a particular year, pass `--year`, for example `--year 2004`. The saved replay HTML may still load images, stylesheets, and scripts from the Wayback Machine; this first version does not mirror an entire site for offline use.
+To select a particular year, pass `--year`, for example `--year 2004`. The downloader is limited to the starting hostname and 500 files by default; adjust the limit with `--max-files`.
+
+Wayback contains rendered public pages, not the original server-side PHP source. PHP modernization therefore needs a separate source checkout or backup.
 
 ## Refresh asset references
 
@@ -32,4 +34,15 @@ python3 scripts/update_assets.py recovered --mapping assets.json
 python3 scripts/update_assets.py recovered --mapping assets.json --write
 ```
 
-The updater scans HTML, CSS, and JavaScript files and changes text references only. It does not download, generate, or replace the asset files themselves.
+The updater scans PHP, HTML, CSS, and JavaScript files and changes text references only. It does not download, generate, or replace the asset files themselves.
+
+## Modernize source code
+
+The modernization runner invokes existing project tools: Rector for PHP, ESLint for JavaScript, and Stylelint for CSS. Install and configure those tools in the source project first. It checks by default; pass `--write` to allow fixes:
+
+```sh
+python3 scripts/modernize_code.py path/to/source
+python3 scripts/modernize_code.py path/to/source --write
+```
+
+Rector, ESLint, and Stylelint apply only the rules configured in that project. Review the resulting diff and run the site's tests before deployment.

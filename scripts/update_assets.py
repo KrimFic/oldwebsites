@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 
 
-TEXT_EXTENSIONS = {".css", ".htm", ".html", ".js"}
+TEXT_EXTENSIONS = {".css", ".htm", ".html", ".js", ".php"}
 
 
 def load_mapping(path: Path) -> dict[str, str]:
